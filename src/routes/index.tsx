@@ -182,6 +182,9 @@ function Index() {
   const [state, setState] = useState<SaveState>(defaultState);
   const [pops, setPops] = useState<{ id: number; x: number; y: number; v: number }[]>([]);
   const [bouncing, setBouncing] = useState(false);
+  const [code, setCode] = useState("");
+  const [codeMsg, setCodeMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const [usedCodes, setUsedCodes] = useState<string[]>([]);
   const popId = useRef(0);
   const loaded = useRef(false);
 
@@ -190,6 +193,8 @@ function Index() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) setState({ ...defaultState(), ...JSON.parse(raw) });
+      const usedRaw = localStorage.getItem(STORAGE_KEY + "-codes");
+      if (usedRaw) setUsedCodes(JSON.parse(usedRaw));
     } catch {}
     loaded.current = true;
   }, []);
@@ -246,7 +251,45 @@ function Index() {
   function reset() {
     if (confirm("Reset your protogen empire? All progress will be lost.")) {
       setState(defaultState());
+      setUsedCodes([]);
+      try { localStorage.removeItem(STORAGE_KEY + "-codes"); } catch {}
     }
+  }
+
+  // Redeemable codes
+  const CODES: Record<string, { reward: number; label: string; once?: boolean }> = {
+    "PROTOGEN":      { reward: 1000,        label: "+1,000 cookies" },
+    "BOOP":          { reward: 500,         label: "+500 cookies" },
+    "FLOOF":         { reward: 10000,       label: "+10,000 cookies" },
+    "VISORLOVE":     { reward: 100000,      label: "+100,000 cookies", once: true },
+    "CYBERFOX":      { reward: 1000000,     label: "+1,000,000 cookies", once: true },
+    "OMEGA":         { reward: 100000000,   label: "+100M cookies", once: true },
+    "GODMODE":       { reward: 1e12,        label: "+1 trillion cookies", once: true },
+  };
+
+  function redeem(e: React.FormEvent) {
+    e.preventDefault();
+    const key = code.trim().toUpperCase().slice(0, 32);
+    if (!key) return;
+    const entry = CODES[key];
+    if (!entry) {
+      setCodeMsg({ text: "Invalid code.", ok: false });
+      setCode("");
+      return;
+    }
+    if (entry.once && usedCodes.includes(key)) {
+      setCodeMsg({ text: "Code already redeemed.", ok: false });
+      setCode("");
+      return;
+    }
+    setState((s) => ({ ...s, bytes: s.bytes + entry.reward, totalBytes: s.totalBytes + entry.reward }));
+    if (entry.once) {
+      const next = [...usedCodes, key];
+      setUsedCodes(next);
+      try { localStorage.setItem(STORAGE_KEY + "-codes", JSON.stringify(next)); } catch {}
+    }
+    setCodeMsg({ text: `Redeemed: ${entry.label}!`, ok: true });
+    setCode("");
   }
 
   const clickCost = Math.ceil(50 * Math.pow(2, state.perClick - 1));
@@ -328,6 +371,43 @@ function Index() {
           <div className="mt-6 text-xs opacity-70 text-center max-w-md">
             Total cookies earned: {fmt(state.totalBytes)} • Boops: {state.clicks}
           </div>
+
+          {/* Redeem code */}
+          <form onSubmit={redeem} className="mt-6 w-full max-w-sm">
+            <label className="block text-xs font-semibold mb-2 opacity-80" style={{ color: "oklch(0.85 0.18 200)" }}>
+              Redeem a code
+            </label>
+            <div className="flex gap-2">
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                maxLength={32}
+                placeholder="ENTER CODE"
+                spellCheck={false}
+                autoCapitalize="characters"
+                className="flex-1 px-3 py-2 rounded-md text-sm font-mono uppercase tracking-wider outline-none border focus:ring-2"
+                style={{
+                  background: "oklch(0.15 0.04 270 / 0.8)",
+                  borderColor: "oklch(0.7 0.2 200 / 0.5)",
+                  color: "oklch(0.95 0.05 200)",
+                }}
+              />
+              <button type="submit"
+                className="px-4 py-2 rounded-md text-sm font-semibold transition"
+                style={{
+                  background: "linear-gradient(135deg, oklch(0.55 0.2 200), oklch(0.45 0.2 280))",
+                  color: "white",
+                }}>
+                Redeem
+              </button>
+            </div>
+            {codeMsg && (
+              <div className="text-xs mt-2" style={{ color: codeMsg.ok ? "oklch(0.85 0.2 150)" : "oklch(0.75 0.2 25)" }}>
+                {codeMsg.text}
+              </div>
+            )}
+            <div className="text-[10px] opacity-50 mt-2">Hint: try BOOP, PROTOGEN, FLOOF…</div>
+          </form>
         </section>
 
         {/* Shop */}
