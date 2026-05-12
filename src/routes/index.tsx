@@ -284,6 +284,7 @@ function Index() {
   const [bgIndex, setBgIndex] = useState(0);
   const [showBgPanel, setShowBgPanel] = useState(false);
   const [hackerMode, setHackerMode] = useState(false);
+  const [bricked, setBricked] = useState(false);
   const popId = useRef(0);
   const loaded = useRef(false);
 
@@ -298,6 +299,7 @@ function Index() {
       const bg = localStorage.getItem(STORAGE_KEY + "-bg");
       if (bg) setBgIndex(Math.max(0, Math.min(BACKGROUNDS.length - 1, parseInt(bg, 10) || 0)));
       if (localStorage.getItem(STORAGE_KEY + "-hacker") === "1") setHackerMode(true);
+      if (localStorage.getItem(STORAGE_KEY + "-bricked") === "1") setBricked(true);
     } catch {}
     loaded.current = true;
   }, []);
@@ -358,11 +360,13 @@ function Index() {
       setGlitchUnlocked(false);
       setBgIndex(0);
       setHackerMode(false);
+      setBricked(false);
       try {
         localStorage.removeItem(STORAGE_KEY + "-codes");
         localStorage.removeItem(STORAGE_KEY + "-glitch");
         localStorage.removeItem(STORAGE_KEY + "-bg");
         localStorage.removeItem(STORAGE_KEY + "-hacker");
+        localStorage.removeItem(STORAGE_KEY + "-bricked");
       } catch {}
     }
   }
@@ -406,6 +410,15 @@ function Index() {
         else localStorage.removeItem(STORAGE_KEY + "-hacker");
       } catch {}
       setCodeMsg({ text: next ? "ACCESS GRANTED — hacker mode engaged." : "Hacker mode disengaged.", ok: true });
+      setCode("");
+      return;
+    }
+
+    // BRICK: locks the entire game; only tapping the logo unbricks it
+    if (key === "BRICK") {
+      setBricked(true);
+      try { localStorage.setItem(STORAGE_KEY + "-bricked", "1"); } catch {}
+      setCodeMsg({ text: "SYSTEM BRICKED — tap the logo to recover.", ok: false });
       setCode("");
       return;
     }
@@ -460,10 +473,22 @@ function Index() {
         maskImage: "radial-gradient(ellipse at center, black 30%, transparent 80%)",
       }} />
 
-      <header className="relative z-10 px-6 py-5 flex items-center justify-between">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight" style={{ textShadow: "0 0 24px oklch(0.8 0.2 200 / 0.6)" }}>
+      <header className="relative z-10 px-6 py-5 flex items-center justify-between" style={{ zIndex: 60 }}>
+        <button
+          type="button"
+          onClick={() => {
+            if (bricked) {
+              setBricked(false);
+              try { localStorage.removeItem(STORAGE_KEY + "-bricked"); } catch {}
+              setCodeMsg({ text: "System recovered. Welcome back.", ok: true });
+            }
+          }}
+          className="text-2xl md:text-3xl font-bold tracking-tight cursor-pointer"
+          style={{ textShadow: "0 0 24px oklch(0.8 0.2 200 / 0.6)", background: "transparent", border: "none", padding: 0 }}
+          aria-label="Protogen Clicker logo"
+        >
           <span style={{ color: "oklch(0.85 0.18 200)" }}>Protogen</span> Clicker
-        </h1>
+        </button>
         <div className="flex items-center gap-2">
           {glitchUnlocked && (
             <button onClick={() => setShowBgPanel((v) => !v)}
@@ -609,7 +634,6 @@ function Index() {
                 {codeMsg.text}
               </div>
             )}
-            <div className="text-[10px] opacity-50 mt-2">Hint: try BOOP, PROTOGEN, FLOOF…</div>
           </form>
         </section>
 
