@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Protogen Cookie Clicker</title>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle, #e5f5ff, #7af5ff);
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .container {
+      text-align: center;
+    }
+
+    h1 {
+      color: #7af5ff;
+      text-shadow: 0 0 12px #7af5ff;
+    }
+
+    button {
+      background-color: #7af5ff;
+      border: none;
+      padding: 15px 30px;
+      font-size: 18px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #5fd4e5;
+    }
+
+    p {
+      font-size: 20px;
+      color: #333;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Protogen Cookie Clicker</h1>
+    <button id="clickButton">Click Me!</button>
+    <p>Clicks: <span id="counter">0</span></p>
+  </div>
+
+  <script>
+    let clicks = 0;
+    const counter = document.getElementById("counter");
+    const button = document.getElementById("clickButton");
+
+    button.addEventListener("click", () => {
+      clicks++;
+      counter.textContent = clicks;
+      localStorage.setItem("clicks", clicks);
+    });
+
+    window.addEventListener("load", () => {
+      const savedClicks = localStorage.getItem("clicks");
+      if (savedClicks) {
+        clicks = parseInt(savedClicks);
+        counter.textContent = clicks;
+      }
+    });
+  </script>
+</body>
+</html>
